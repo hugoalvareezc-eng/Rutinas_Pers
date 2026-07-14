@@ -33,7 +33,7 @@ revealEls.forEach(el => io.observe(el));
 /* ---------- Wizard state ---------- */
 const state = {
   name: "", age: null, sex: null, goal: null,
-  level: null, days: null, focusArea: "ninguna"
+  level: null, muscles: []
 };
 
 let currentStep = 1;
@@ -47,14 +47,34 @@ const btnNext = document.getElementById("btnNext");
 const btnGenerate = document.getElementById("btnGenerate");
 const wizardError = document.getElementById("wizardError");
 
-/* Pill / option-card selection */
+/* Pill selection — soporta selección única (radio) y múltiple (data-multi) */
 document.querySelectorAll(".pill-group").forEach(group => {
   const name = group.dataset.name;
+  const isMulti = group.dataset.multi === "true";
+
   group.querySelectorAll(".pill").forEach(pill => {
     pill.addEventListener("click", () => {
-      group.querySelectorAll(".pill").forEach(p => p.classList.remove("selected"));
-      pill.classList.add("selected");
-      state[name] = pill.dataset.value;
+      if (!isMulti) {
+        group.querySelectorAll(".pill").forEach(p => p.classList.remove("selected"));
+        pill.classList.add("selected");
+        state[name] = pill.dataset.value;
+      } else {
+        const value = pill.dataset.value;
+        const isFullbody = value === "fullbody";
+
+        if (isFullbody) {
+          // "Cuerpo completo" es excluyente con cualquier otra selección
+          group.querySelectorAll(".pill").forEach(p => p.classList.remove("selected"));
+          pill.classList.add("selected");
+          state[name] = ["fullbody"];
+        } else {
+          group.querySelector('.pill[data-value="fullbody"]')?.classList.remove("selected");
+          pill.classList.toggle("selected");
+          state[name] = Array.from(group.querySelectorAll(".pill.selected"))
+            .map(p => p.dataset.value)
+            .filter(v => v !== "fullbody");
+        }
+      }
       wizardError.textContent = "";
     });
   });
@@ -92,7 +112,7 @@ function validateStep(n) {
   if (n === 2 && !state.goal) return "Selecciona tu objetivo principal.";
   if (n === 3) {
     if (!state.level) return "Selecciona tu nivel.";
-    if (!state.days) return "Selecciona cuántos días puedes entrenar.";
+    if (!state.muscles.length) return "Selecciona al menos un músculo a entrenar hoy.";
   }
   return null;
 }
@@ -124,8 +144,7 @@ form.addEventListener("submit", (e) => {
     sex: state.sex,
     goal: state.goal,
     level: state.level,
-    days: Number(state.days),
-    focusArea: state.focusArea
+    muscles: state.muscles
   };
 
   const routine = buildRoutine(profile);
@@ -137,10 +156,10 @@ form.addEventListener("submit", (e) => {
 
 /* ---------- Render results ---------- */
 function renderResults(routine, name) {
-  const { profile, scheme, nutrition, days, generalNotes } = routine;
+  const { profile, scheme, nutrition, title, warmup, blocks, cardioFinisher, cooldown, totalExercises, generalNotes } = routine;
 
   document.getElementById("resultsTitle").textContent =
-    name ? `Rutina personalizada de ${name}` : "Rutina personalizada";
+    name ? `Rutina de ${title} de ${name}` : `Rutina de ${title}`;
 
   const goalLabel = GOAL_SCHEMES[profile.goal].label;
   const levelLabel = { principiante: "Principiante", intermedio: "Intermedio", avanzado: "Avanzado" }[profile.level];
@@ -149,7 +168,7 @@ function renderResults(routine, name) {
     <span class="meta-chip">${profile.age} años</span>
     <span class="meta-chip">${goalLabel}</span>
     <span class="meta-chip">${levelLabel}</span>
-    <span class="meta-chip">${profile.days} días/semana</span>
+    <span class="meta-chip">${totalExercises} ejercicios</span>
   `;
 
   const notesEl = document.getElementById("resultsNotes");
@@ -157,36 +176,44 @@ function renderResults(routine, name) {
     ? `<ul>${generalNotes.map(n => `<li>${n}</li>`).join("")}</ul>`
     : "";
 
-  const daysEl = document.getElementById("resultsDays");
-  daysEl.innerHTML = days.map(day => `
-    <div class="day-card">
-      <h3>${day.name}</h3>
-      <p class="day-card__block-title">Calentamiento</p>
-      <p class="day-card__warmup">${day.warmup}</p>
-      <p class="day-card__block-title">Ejercicios · ${scheme.sets} series x ${scheme.reps} reps · Descanso ${scheme.rest}</p>
-      ${day.exercises.map(ex => `
-        <div class="exercise">
-          <div class="exercise__head">
-            <span class="exercise__name">${ex.name}</span>
-            <span class="exercise__scheme">${scheme.sets}x${scheme.reps}</span>
-          </div>
-          <p class="exercise__tip">💡 ${ex.tip}</p>
-        </div>
+  const exerciseHTML = (ex) => `
+    <div class="exercise">
+      <div class="exercise__head">
+        <span class="exercise__name">${ex.name}</span>
+        <span class="exercise__scheme">${scheme.sets}x${scheme.reps}</span>
+      </div>
+      <p class="exercise__tip">💡 ${ex.tip}</p>
+    </div>
+  `;
+
+  const sessionEl = document.getElementById("resultsSession");
+  sessionEl.innerHTML = `
+    <div class="session-card">
+      <p class="session-card__block-title">Calentamiento</p>
+      <p class="session-card__warmup">${warmup}</p>
+
+      <p class="session-card__scheme-note">${scheme.sets} series x ${scheme.reps} reps · Descanso ${scheme.rest}</p>
+
+      ${blocks.map(block => `
+        <h3 class="session-card__muscle">${block.label}</h3>
+        ${block.exercises.map(exerciseHTML).join("")}
       `).join("")}
-      ${day.cardioFinisher ? `
-        <p class="day-card__block-title">Finisher de cardio</p>
+
+      ${cardioFinisher ? `
+        <p class="session-card__block-title">Finisher de cardio</p>
         <div class="exercise">
           <div class="exercise__head">
-            <span class="exercise__name">${day.cardioFinisher.name}</span>
+            <span class="exercise__name">${cardioFinisher.name}</span>
             <span class="exercise__scheme">3 x 45 seg</span>
           </div>
-          <p class="exercise__tip">💡 ${day.cardioFinisher.tip}</p>
+          <p class="exercise__tip">💡 ${cardioFinisher.tip}</p>
         </div>
       ` : ""}
-      <p class="day-card__block-title">Enfriamiento</p>
-      <p class="day-card__cooldown">${day.cooldown}</p>
+
+      <p class="session-card__block-title">Enfriamiento</p>
+      <p class="session-card__cooldown">${cooldown}</p>
     </div>
-  `).join("");
+  `;
 
   document.getElementById("resultsNutrition").innerHTML = `
     <h3>Recomendación nutricional</h3>

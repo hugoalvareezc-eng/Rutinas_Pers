@@ -1,6 +1,22 @@
 /* ============================================================
-   MAXIMUS GYM — Algoritmo generador de rutinas personalizadas
+   MAXIMUS GYM — Algoritmo generador de rutina del día
+   El usuario elige qué músculo(s) quiere entrenar HOY y el
+   algoritmo arma una sesión completa y extensa para esa zona,
+   no un plan semanal.
 ============================================================ */
+
+const MUSCLE_LABELS = {
+  pecho: "Pecho",
+  espalda: "Espalda",
+  hombro: "Hombro",
+  pierna: "Pierna",
+  gluteo: "Glúteo",
+  biceps: "Bíceps",
+  triceps: "Tríceps",
+  abs: "Abdomen"
+};
+
+const FULLBODY_GROUPS = ["pecho", "espalda", "pierna", "hombro", "abs"];
 
 function shuffle(arr) {
   const a = [...arr];
@@ -12,8 +28,8 @@ function shuffle(arr) {
 }
 
 /* Selecciona ejercicios de un grupo muscular según la edad del usuario,
-   evitando repetir ejercicios ya usados en el mismo día (usedNames) */
-function pickExercises(group, count, ctx, usedNames = new Set()) {
+   evitando repetir ejercicios ya usados en la misma sesión (usedNames) */
+function pickExercises(group, count, ctx, usedNames) {
   const pool = EXERCISES[group] || [];
   const { avoidHighImpact } = ctx;
 
@@ -33,93 +49,83 @@ function pickExercises(group, count, ctx, usedNames = new Set()) {
   return chosen;
 }
 
-/* Define la plantilla de días según cuántos días/semana y nivel */
-function buildSplit(days, level) {
-  if (days <= 2) return ["Full Body A", "Full Body B"].slice(0, days);
-  if (days === 3) {
-    return level === "principiante"
-      ? ["Full Body A", "Full Body B", "Full Body C"]
-      : ["Empuje (Push)", "Tirón (Pull)", "Pierna"];
+/* Cuántos ejercicios por grupo muscular según cuántos grupos se eligieron
+   y el nivel del usuario. Menos grupos = rutina más larga por grupo,
+   para que una sesión de un solo músculo se sienta completa. */
+const PER_GROUP_COUNT = {
+  1: { principiante: 5, intermedio: 6, avanzado: 8 },
+  2: { principiante: 3, intermedio: 4, avanzado: 5 },
+  3: { principiante: 2, intermedio: 3, avanzado: 4 },
+  4: { principiante: 2, intermedio: 2, avanzado: 3 }
+};
+
+function perGroupCount(groupCount, level) {
+  const key = Math.min(groupCount, 4);
+  return PER_GROUP_COUNT[key][level];
+}
+
+/* Arma la plantilla de la sesión: qué grupos musculares y cuántos
+   ejercicios de cada uno */
+function buildBlueprint(muscles, level) {
+  if (muscles.includes("fullbody")) {
+    const coreCount = level === "principiante" ? 1 : 2;
+    const blueprint = FULLBODY_GROUPS.map(g => [g, coreCount]);
+    if (level !== "principiante") {
+      blueprint.push(["biceps", 1], ["triceps", 1]);
+    }
+    return blueprint;
   }
-  if (days === 4) return ["Tren Superior A", "Tren Inferior A", "Tren Superior B", "Tren Inferior B"];
-  if (days === 5) return ["Empuje (Push)", "Tirón (Pull)", "Pierna", "Tren Superior", "Tren Inferior"];
-  return ["Empuje (Push)", "Tirón (Pull)", "Pierna", "Empuje (Push)", "Tirón (Pull)", "Pierna"];
+
+  const count = perGroupCount(muscles.length, level);
+  return muscles.map(g => [g, count]);
 }
 
-/* Grupos musculares y cantidad de ejercicios por tipo de día */
-const DAY_BLUEPRINT = {
-  "Full Body A": [["pecho", 1], ["espalda", 1], ["pierna", 1], ["hombro", 1], ["abs", 1]],
-  "Full Body B": [["espalda", 1], ["pierna", 1], ["pecho", 1], ["biceps", 1], ["abs", 1]],
-  "Full Body C": [["pierna", 1], ["hombro", 1], ["espalda", 1], ["triceps", 1], ["abs", 1]],
-  "Empuje (Push)": [["pecho", 2], ["hombro", 2], ["triceps", 1]],
-  "Tirón (Pull)": [["espalda", 3], ["biceps", 2]],
-  "Pierna": [["pierna", 3], ["gluteo", 2], ["abs", 1]],
-  "Tren Superior A": [["pecho", 2], ["espalda", 2], ["hombro", 1], ["biceps", 1]],
-  "Tren Superior B": [["espalda", 2], ["pecho", 2], ["hombro", 1], ["triceps", 1]],
-  "Tren Inferior A": [["pierna", 2], ["gluteo", 2], ["abs", 1]],
-  "Tren Inferior B": [["pierna", 3], ["gluteo", 1], ["abs", 1]],
-  "Tren Superior": [["pecho", 2], ["espalda", 2], ["hombro", 1], ["biceps", 1], ["triceps", 1]],
-  "Tren Inferior": [["pierna", 3], ["gluteo", 2], ["abs", 1]]
-};
-
-const WARMUP_BY_DAY = {
-  default: "5-8 min de cardio suave (bici o caminadora) + movilidad articular de hombros, cadera y rodillas + 1-2 series ligeras del primer ejercicio."
-};
-
-const COOLDOWN = "5-10 min de estiramientos estáticos de los músculos trabajados, respirando profundo en cada posición (20-30 seg por músculo).";
-
-function levelAdjustCount(count, level) {
-  if (level === "principiante") return Math.max(1, count - 1);
-  if (level === "avanzado") return count + 1;
-  return count;
+function buildTitle(muscles) {
+  if (muscles.includes("fullbody")) return "Cuerpo Completo";
+  const labels = muscles.map(m => MUSCLE_LABELS[m]);
+  if (labels.length === 1) return labels[0];
+  return labels.slice(0, -1).join(", ") + " y " + labels[labels.length - 1];
 }
+
+const WARMUP = "8-10 min de cardio suave (bici, elíptica o cinta) + movilidad articular de la zona que vas a trabajar + 1-2 series de aproximación con poco peso antes de tu primer ejercicio.";
+const COOLDOWN = "8-10 min de estiramientos estáticos de los músculos trabajados hoy, respirando profundo en cada posición (20-30 seg por músculo).";
 
 function buildRoutine(profile) {
-  const { age, goal, level, days, focusArea } = profile;
+  const { age, goal, level, muscles } = profile;
 
   const avoidHighImpact = age >= 55;
   const scheme = GOAL_SCHEMES[goal];
-
-  const splitNames = buildSplit(days, level);
   const ctx = { avoidHighImpact };
+  const usedNames = new Set();
 
-  const routineDays = splitNames.map((dayName, idx) => {
-    const blueprint = DAY_BLUEPRINT[dayName];
-    const usedNames = new Set();
-    let exercises = [];
+  const blueprint = buildBlueprint(muscles, level);
 
-    blueprint.forEach(([group, baseCount]) => {
-      const count = levelAdjustCount(baseCount, level);
-      exercises = exercises.concat(pickExercises(group, count, ctx, usedNames));
-    });
+  const blocks = blueprint
+    .map(([group, count]) => ({
+      muscle: group,
+      label: MUSCLE_LABELS[group],
+      exercises: pickExercises(group, count, ctx, usedNames)
+    }))
+    .filter(block => block.exercises.length > 0);
 
-    // Prioriza zona de énfasis si el usuario la eligió, agregando 1 ejercicio extra
-    if (focusArea && focusArea !== "ninguna") {
-      const extra = pickExercises(focusArea, 1, ctx, usedNames);
-      if (extra.length) exercises.push(extra[0]);
-    }
+  let cardioFinisher = null;
+  if (scheme.cardio) {
+    const c = pickExercises("cardio", 1, ctx, usedNames);
+    if (c.length) cardioFinisher = c[0];
+  }
 
-    // Finisher de cardio para objetivos orientados a pérdida de peso / resistencia
-    let cardioFinisher = null;
-    if (scheme.cardio) {
-      const c = pickExercises("cardio", 1, ctx, usedNames);
-      if (c.length) cardioFinisher = c[0];
-    }
-
-    return {
-      name: `Día ${idx + 1} · ${dayName}`,
-      warmup: WARMUP_BY_DAY.default,
-      exercises,
-      cardioFinisher,
-      cooldown: COOLDOWN
-    };
-  });
+  const totalExercises = blocks.reduce((sum, b) => sum + b.exercises.length, 0) + (cardioFinisher ? 1 : 0);
 
   return {
     profile,
     scheme,
     nutrition: NUTRITION_TIPS[goal],
-    days: routineDays,
+    title: buildTitle(muscles),
+    warmup: WARMUP,
+    blocks,
+    cardioFinisher,
+    cooldown: COOLDOWN,
+    totalExercises,
     generalNotes: buildGeneralNotes(profile)
   };
 }
@@ -132,7 +138,7 @@ function buildGeneralNotes(profile) {
   if (profile.age >= 55) {
     notes.push("Se priorizaron ejercicios de bajo impacto para cuidar tus articulaciones. Aumenta el tiempo de calentamiento y progresa las cargas de forma gradual.");
   }
-  notes.push("La progresión es clave: cuando completes todas las series y repeticiones con buena técnica, aumenta el peso ligeramente en la siguiente sesión.");
+  notes.push("La progresión es clave: cuando completes todas las series y repeticiones con buena técnica, aumenta el peso ligeramente en tu próxima sesión de este músculo.");
   notes.push("Descansa al menos 48 horas antes de volver a entrenar el mismo grupo muscular y duerme 7-9 horas para una óptima recuperación.");
   return notes;
 }

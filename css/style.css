@@ -197,6 +197,9 @@ button{ font-family: inherit; cursor:pointer; }
 }
 .pill:hover{ border-color: var(--border-strong); color: var(--text); }
 .pill.selected{ background: linear-gradient(135deg, var(--gold-light), var(--gold)); color:#1a1305; border-color: transparent; }
+.pill--fullbody{ border-style: dashed; border-color: var(--border-strong); font-weight:700; }
+.pill--fullbody.selected{ border-style: solid; }
+.field__hint{ font-size:.78rem; color: var(--text-faint); margin: .7em 0 0; }
 
 .option-grid{ display:grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
 .option-card{
@@ -232,22 +235,29 @@ button{ font-family: inherit; cursor:pointer; }
 .results__notes li{ margin-bottom:.4em; }
 .results__notes:empty{ display:none; }
 
-.results__days{ display:grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1.8rem; }
-.day-card{
+.results__session{ max-width: 780px; margin: 0 auto; }
+.session-card{
   background: linear-gradient(160deg, var(--surface), var(--surface-2)); border:1px solid var(--border);
-  border-radius: var(--radius); padding: 1.8rem; break-inside: avoid;
+  border-radius: var(--radius); padding: 1.8rem;
 }
-.day-card h3{ font-size:1.2rem; color: var(--gold-light); border-bottom:1px solid var(--border); padding-bottom:.6em; margin-bottom:1em; }
-.day-card__block-title{ font-size:.72rem; text-transform:uppercase; letter-spacing:.1em; color: var(--text-faint); font-weight:700; margin: 1.1em 0 .5em; }
-.day-card__warmup, .day-card__cooldown{ font-size:.85rem; color: var(--text-dim); }
+.session-card__muscle{
+  font-size:1.05rem; color: var(--gold-light); border-bottom:1px solid var(--border);
+  padding-bottom:.6em; margin: 1.8em 0 .8em;
+}
+.session-card__muscle:first-of-type{ margin-top: 1.2em; }
+.session-card__block-title{ font-size:.72rem; text-transform:uppercase; letter-spacing:.1em; color: var(--text-faint); font-weight:700; margin: 1.1em 0 .5em; }
+.session-card__warmup, .session-card__cooldown{ font-size:.9rem; color: var(--text-dim); }
+.session-card__scheme-note{
+  font-size:.8rem; color: var(--gold); font-weight:700; text-transform:uppercase; letter-spacing:.06em;
+  margin: 1.4em 0 0; padding-top: 1.2em; border-top:1px solid var(--border);
+}
 
 .exercise{ border-top: 1px dashed var(--border); padding: .9em 0; }
 .exercise:first-of-type{ border-top:none; }
-.exercise__head{ display:flex; justify-content:space-between; align-items:baseline; gap:.6rem; }
+.exercise__head{ display:flex; justify-content:space-between; align-items:baseline; gap:.6rem; flex-wrap:wrap; }
 .exercise__name{ font-weight:700; color: var(--text); font-size:.95rem; }
 .exercise__scheme{ font-size:.78rem; color: var(--gold); white-space:nowrap; font-weight:700; }
-.exercise__tip{ font-size:.83rem; color: var(--text-faint); margin: .35em 0 0; }
-.exercise__flag{ color: var(--crimson-light); font-weight:700; }
+.exercise__tip{ font-size:.85rem; color: var(--text-faint); margin: .35em 0 0; }
 
 .results__nutrition{
   max-width:780px; margin: 3rem auto 0; background: rgba(212,175,55,0.05); border:1px solid var(--border-strong);
@@ -290,10 +300,23 @@ button{ font-family: inherit; cursor:pointer; }
   .option-grid{ grid-template-columns: repeat(2,1fr); }
 }
 @media (max-width: 560px){
+  .section{ padding: 72px 0; }
+  .hero{ padding: 128px 0 80px; min-height: auto; }
   .grid--4{ grid-template-columns: 1fr; }
-  .wizard{ padding: 1.6rem; }
+  .wizard{ padding: 1.5rem 1.2rem; }
   .option-grid{ grid-template-columns: 1fr 1fr; }
   .wizard__nav{ flex-wrap:wrap; }
+  .wizard__nav .btn{ flex:1; }
+  .session-card{ padding: 1.3rem; }
+  .results__notes, .results__nutrition{ padding: 1.2rem; }
+  .results__actions{ flex-direction:column; align-items:stretch; }
+  .results__actions .btn{ width:100%; }
+  .exercise__head{ gap:.3rem; }
+}
+@media (max-width: 380px){
+  .hero__title{ font-size: 2.2rem; }
+  .brand__text{ font-size:.95rem; }
+  .wizard__steps-label{ font-size:.62rem; }
 }
 
 /* ---------- Print ---------- */
@@ -301,6 +324,6 @@ button{ font-family: inherit; cursor:pointer; }
   .nav, .hero, .section--alt, #wizard, .section--cta, .footer, .results__actions, .hero__scroll{ display:none !important; }
   body{ background:#fff; color:#111; }
   .results{ display:block !important; }
-  .day-card, .results__notes, .results__nutrition{ border-color:#ccc; background:#fff; box-shadow:none; }
+  .session-card, .results__notes, .results__nutrition{ border-color:#ccc; background:#fff; box-shadow:none; }
   .exercise__tip, p{ color:#333; }
 }
