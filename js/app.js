@@ -33,12 +33,11 @@ revealEls.forEach(el => io.observe(el));
 /* ---------- Wizard state ---------- */
 const state = {
   name: "", age: null, sex: null, goal: null,
-  level: null, days: null, place: null,
-  focusArea: "ninguna", limitations: ""
+  level: null, days: null, focusArea: "ninguna"
 };
 
 let currentStep = 1;
-const totalSteps = 4;
+const totalSteps = 3;
 
 const stepsEls = document.querySelectorAll(".wizard__step");
 const barFill = document.getElementById("barFill");
@@ -92,9 +91,8 @@ function validateStep(n) {
   }
   if (n === 2 && !state.goal) return "Selecciona tu objetivo principal.";
   if (n === 3) {
-    if (!state.level) return "Selecciona tu nivel de experiencia.";
+    if (!state.level) return "Selecciona tu nivel.";
     if (!state.days) return "Selecciona cuántos días puedes entrenar.";
-    if (!state.place) return "Selecciona dónde entrenas.";
   }
   return null;
 }
@@ -120,7 +118,6 @@ form.addEventListener("submit", (e) => {
 
   state.name = document.getElementById("name").value.trim();
   state.age = Number(document.getElementById("age").value);
-  state.limitations = document.getElementById("limitations").value.trim();
 
   const profile = {
     age: state.age,
@@ -128,9 +125,7 @@ form.addEventListener("submit", (e) => {
     goal: state.goal,
     level: state.level,
     days: Number(state.days),
-    place: state.place,
-    focusArea: state.focusArea,
-    limitations: state.limitations
+    focusArea: state.focusArea
   };
 
   const routine = buildRoutine(profile);
@@ -148,7 +143,6 @@ function renderResults(routine, name) {
     name ? `Rutina personalizada de ${name}` : "Rutina personalizada";
 
   const goalLabel = GOAL_SCHEMES[profile.goal].label;
-  const placeLabel = { gym: "Gimnasio completo", home_dumbbell: "Casa con mancuernas", home_bodyweight: "Casa sin equipo" }[profile.place];
   const levelLabel = { principiante: "Principiante", intermedio: "Intermedio", avanzado: "Avanzado" }[profile.level];
 
   document.getElementById("resultsMeta").innerHTML = `
@@ -156,7 +150,6 @@ function renderResults(routine, name) {
     <span class="meta-chip">${goalLabel}</span>
     <span class="meta-chip">${levelLabel}</span>
     <span class="meta-chip">${profile.days} días/semana</span>
-    <span class="meta-chip">${placeLabel}</span>
   `;
 
   const notesEl = document.getElementById("resultsNotes");
@@ -174,7 +167,7 @@ function renderResults(routine, name) {
       ${day.exercises.map(ex => `
         <div class="exercise">
           <div class="exercise__head">
-            <span class="exercise__name">${ex.flagged ? '<span class="exercise__flag">⚠️ </span>' : ""}${ex.name}</span>
+            <span class="exercise__name">${ex.name}</span>
             <span class="exercise__scheme">${scheme.sets}x${scheme.reps}</span>
           </div>
           <p class="exercise__tip">💡 ${ex.tip}</p>

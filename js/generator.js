@@ -11,42 +11,26 @@ function shuffle(arr) {
   return a;
 }
 
-function detectCautions(text) {
-  if (!text) return [];
-  const t = text.toLowerCase();
-  const found = [];
-  for (const [tag, words] of Object.entries(CAUTION_KEYWORDS)) {
-    if (words.some(w => t.includes(w))) found.push(tag);
-  }
-  return found;
-}
-
-/* Selecciona ejercicios de un grupo muscular respetando equipo, edad, molestias
-   y evitando repetir ejercicios ya usados en el mismo día (usedNames) */
+/* Selecciona ejercicios de un grupo muscular respetando el equipo real
+   disponible, la edad y evitando repetir ejercicios ya usados en el
+   mismo día (usedNames) */
 function pickExercises(group, count, ctx, usedNames = new Set()) {
   const pool = EXERCISES[group] || [];
-  const { equip, cautions, avoidHighImpact } = ctx;
+  const { avoidHighImpact } = ctx;
 
-  const compatible = pool.filter(ex => ex.equip.includes(equip) && !usedNames.has(ex.name));
-
-  const safe = compatible.filter(ex => {
+  const available = pool.filter(ex => {
+    if (usedNames.has(ex.name)) return false;
+    if (ex.machine && AVAILABLE_MACHINES[ex.machine] === false) return false;
     if (avoidHighImpact && ex.impact === "high") return false;
-    if (ex.caution && ex.caution.some(c => cautions.includes(c))) return false;
     return true;
   });
 
-  const usable = safe.length >= count ? safe : compatible;
-
   // ordena compuestos primero, luego mezcla el resto
-  const compounds = shuffle(usable.filter(e => e.compound));
-  const isolations = shuffle(usable.filter(e => !e.compound));
+  const compounds = shuffle(available.filter(e => e.compound));
+  const isolations = shuffle(available.filter(e => !e.compound));
   const ordered = [...compounds, ...isolations];
 
-  const chosen = ordered.slice(0, count).map(ex => ({
-    ...ex,
-    flagged: !!(ex.caution && ex.caution.some(c => cautions.includes(c)))
-  }));
-
+  const chosen = ordered.slice(0, count);
   chosen.forEach(ex => usedNames.add(ex.name));
   return chosen;
 }
@@ -93,15 +77,13 @@ function levelAdjustCount(count, level) {
 }
 
 function buildRoutine(profile) {
-  const { age, sex, goal, level, days, place, focusArea, limitations } = profile;
+  const { age, goal, level, days, focusArea } = profile;
 
-  const equip = place; // 'gym' | 'home_dumbbell' | 'home_bodyweight'
-  const cautions = detectCautions(limitations);
   const avoidHighImpact = age >= 55;
   const scheme = GOAL_SCHEMES[goal];
 
   const splitNames = buildSplit(days, level);
-  const ctx = { equip, cautions, avoidHighImpact };
+  const ctx = { avoidHighImpact };
 
   const routineDays = splitNames.map((dayName, idx) => {
     const blueprint = DAY_BLUEPRINT[dayName];
@@ -139,22 +121,18 @@ function buildRoutine(profile) {
     profile,
     scheme,
     nutrition: NUTRITION_TIPS[goal],
-    cautions,
     days: routineDays,
-    generalNotes: buildGeneralNotes(profile, cautions)
+    generalNotes: buildGeneralNotes(profile)
   };
 }
 
-function buildGeneralNotes(profile, cautions) {
+function buildGeneralNotes(profile) {
   const notes = [];
   if (profile.age < 16) {
     notes.push("Por tu edad, entrena idealmente bajo supervisión de un adulto o entrenador y prioriza siempre la técnica sobre el peso.");
   }
   if (profile.age >= 55) {
     notes.push("Se priorizaron ejercicios de bajo impacto para cuidar tus articulaciones. Aumenta el tiempo de calentamiento y progresa las cargas de forma gradual.");
-  }
-  if (cautions.length) {
-    notes.push("Detectamos molestias que mencionaste; evitamos o marcamos ⚠️ los ejercicios de mayor riesgo para esa zona. Si el dolor persiste, consulta a un profesional de la salud antes de continuar.");
   }
   notes.push("La progresión es clave: cuando completes todas las series y repeticiones con buena técnica, aumenta el peso ligeramente en la siguiente sesión.");
   notes.push("Descansa al menos 48 horas antes de volver a entrenar el mismo grupo muscular y duerme 7-9 horas para una óptima recuperación.");
