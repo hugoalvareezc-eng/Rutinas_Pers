@@ -11,16 +11,14 @@ function shuffle(arr) {
   return a;
 }
 
-/* Selecciona ejercicios de un grupo muscular respetando el equipo real
-   disponible, la edad y evitando repetir ejercicios ya usados en el
-   mismo día (usedNames) */
+/* Selecciona ejercicios de un grupo muscular según la edad del usuario,
+   evitando repetir ejercicios ya usados en el mismo día (usedNames) */
 function pickExercises(group, count, ctx, usedNames = new Set()) {
   const pool = EXERCISES[group] || [];
   const { avoidHighImpact } = ctx;
 
   const available = pool.filter(ex => {
     if (usedNames.has(ex.name)) return false;
-    if (ex.machine && AVAILABLE_MACHINES[ex.machine] === false) return false;
     if (avoidHighImpact && ex.impact === "high") return false;
     return true;
   });
