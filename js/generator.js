@@ -18,6 +18,13 @@ const MUSCLE_LABELS = {
 
 const FULLBODY_GROUPS = ["pecho", "espalda", "pierna", "hombro", "abs"];
 
+/* Subgrupos que deben estar representados dentro de un grupo muscular,
+   para que la selección aleatoria no favorezca solo un patrón (ej. puro
+   cuádriceps en pierna, dejando fuera el femoral). */
+const MANDATORY_SUBGROUPS = {
+  pierna: ["quad", "femoral", "pantorrilla"]
+};
+
 function shuffle(arr) {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -28,7 +35,9 @@ function shuffle(arr) {
 }
 
 /* Selecciona ejercicios de un grupo muscular según la edad del usuario,
-   evitando repetir ejercicios ya usados en la misma sesión (usedNames) */
+   evitando repetir ejercicios ya usados en la misma sesión (usedNames).
+   Si el grupo tiene subgrupos obligatorios, garantiza al menos uno de
+   cada subgrupo antes de rellenar el resto priorizando compuestos. */
 function pickExercises(group, count, ctx, usedNames) {
   const pool = EXERCISES[group] || [];
   const { avoidHighImpact } = ctx;
@@ -39,24 +48,35 @@ function pickExercises(group, count, ctx, usedNames) {
     return true;
   });
 
-  // ordena compuestos primero, luego mezcla el resto
-  const compounds = shuffle(available.filter(e => e.compound));
-  const isolations = shuffle(available.filter(e => !e.compound));
-  const ordered = [...compounds, ...isolations];
+  const chosen = [];
+  const mandatorySubs = MANDATORY_SUBGROUPS[group] || [];
+  mandatorySubs.forEach(sub => {
+    if (chosen.length >= count) return;
+    const options = shuffle(available.filter(e => e.sub === sub && !chosen.includes(e)));
+    if (options.length) chosen.push(options[0]);
+  });
 
-  const chosen = ordered.slice(0, count);
+  const remaining = available.filter(e => !chosen.includes(e));
+  const compounds = shuffle(remaining.filter(e => e.compound));
+  const isolations = shuffle(remaining.filter(e => !e.compound));
+  const rest = [...compounds, ...isolations];
+
+  while (chosen.length < count && rest.length) {
+    chosen.push(rest.shift());
+  }
+
   chosen.forEach(ex => usedNames.add(ex.name));
   return chosen;
 }
 
-/* Cuántos ejercicios por grupo muscular según cuántos grupos se eligieron
-   y el nivel del usuario. Menos grupos = rutina más larga por grupo,
-   para que una sesión de un solo músculo se sienta completa. */
+/* Cuántos ejercicios por grupo muscular según cuántos grupos se eligieron.
+   Se mantiene moderado y consistente entre niveles para que la sesión
+   nunca se sienta ni demasiado corta ni excesivamente larga. */
 const PER_GROUP_COUNT = {
-  1: { principiante: 6, intermedio: 7, avanzado: 9 },
-  2: { principiante: 5, intermedio: 6, avanzado: 7 },
-  3: { principiante: 5, intermedio: 5, avanzado: 6 },
-  4: { principiante: 5, intermedio: 5, avanzado: 5 }
+  1: { principiante: 5, intermedio: 5, avanzado: 6 },
+  2: { principiante: 4, intermedio: 5, avanzado: 5 },
+  3: { principiante: 4, intermedio: 4, avanzado: 4 },
+  4: { principiante: 3, intermedio: 4, avanzado: 4 }
 };
 
 function perGroupCount(groupCount, level) {
@@ -65,13 +85,11 @@ function perGroupCount(groupCount, level) {
 }
 
 /* Arma la plantilla de la sesión: qué grupos musculares y cuántos
-   ejercicios de cada uno. Cada músculo elegido recibe al menos 5
-   ejercicios para que la sesión nunca se sienta corta. */
+   ejercicios de cada uno. */
 function buildBlueprint(muscles, level) {
   if (muscles.includes("fullbody")) {
-    const coreCount = level === "principiante" ? 2 : 3;
-    const blueprint = FULLBODY_GROUPS.map(g => [g, coreCount]);
-    blueprint.push(["biceps", level === "principiante" ? 1 : 2], ["triceps", level === "principiante" ? 1 : 2]);
+    const blueprint = FULLBODY_GROUPS.map(g => [g, 2]);
+    blueprint.push(["biceps", 1], ["triceps", 1]);
     return blueprint;
   }
 
@@ -86,7 +104,7 @@ function buildTitle(muscles) {
   return labels.slice(0, -1).join(", ") + " y " + labels[labels.length - 1];
 }
 
-const WARMUP = "8-10 min de cardio suave (bici, elíptica o cinta) + movilidad articular de la zona que vas a trabajar + 1-2 series de aproximación con poco peso antes de tu primer ejercicio.";
+const WARMUP = "8-10 min de cardio suave en elíptica o remo + movilidad articular de la zona que vas a trabajar + 1-2 series de aproximación con poco peso antes de tu primer ejercicio.";
 const COOLDOWN = "8-10 min de estiramientos estáticos de los músculos trabajados hoy, respirando profundo en cada posición (20-30 seg por músculo).";
 
 function buildRoutine(profile) {
