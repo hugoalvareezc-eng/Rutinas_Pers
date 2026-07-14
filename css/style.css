@@ -321,9 +321,14 @@ button{ font-family: inherit; cursor:pointer; }
 
 /* ---------- Print ---------- */
 @media print{
-  .nav, .hero, .section--alt, #wizard, .section--cta, .footer, .results__actions, .hero__scroll{ display:none !important; }
-  body{ background:#fff; color:#111; }
-  .results{ display:block !important; }
-  .session-card, .results__notes, .results__nutrition{ border-color:#ccc; background:#fff; box-shadow:none; }
-  .exercise__tip, p{ color:#333; }
+  *{ -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+  .nav, .hero, .hero__scroll, #nosotros, #como-funciona, #contacto, .footer,
+  #generador > .container > .eyebrow, #generador > .container > .section__title,
+  #generador > .container > .section__lead, #wizard, .results__actions{
+    display:none !important;
+  }
+  body{ background: var(--bg) !important; }
+  .section{ padding: 0 !important; }
+  .results{ display:block !important; margin-top: 0; }
+  .session-card, .results__notes, .results__nutrition{ box-shadow:none; }
 }
