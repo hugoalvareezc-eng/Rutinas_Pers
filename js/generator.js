@@ -53,10 +53,10 @@ function pickExercises(group, count, ctx, usedNames) {
    y el nivel del usuario. Menos grupos = rutina más larga por grupo,
    para que una sesión de un solo músculo se sienta completa. */
 const PER_GROUP_COUNT = {
-  1: { principiante: 5, intermedio: 6, avanzado: 8 },
-  2: { principiante: 3, intermedio: 4, avanzado: 5 },
-  3: { principiante: 2, intermedio: 3, avanzado: 4 },
-  4: { principiante: 2, intermedio: 2, avanzado: 3 }
+  1: { principiante: 6, intermedio: 7, avanzado: 9 },
+  2: { principiante: 5, intermedio: 6, avanzado: 7 },
+  3: { principiante: 5, intermedio: 5, avanzado: 6 },
+  4: { principiante: 5, intermedio: 5, avanzado: 5 }
 };
 
 function perGroupCount(groupCount, level) {
@@ -65,14 +65,13 @@ function perGroupCount(groupCount, level) {
 }
 
 /* Arma la plantilla de la sesión: qué grupos musculares y cuántos
-   ejercicios de cada uno */
+   ejercicios de cada uno. Cada músculo elegido recibe al menos 5
+   ejercicios para que la sesión nunca se sienta corta. */
 function buildBlueprint(muscles, level) {
   if (muscles.includes("fullbody")) {
-    const coreCount = level === "principiante" ? 1 : 2;
+    const coreCount = level === "principiante" ? 2 : 3;
     const blueprint = FULLBODY_GROUPS.map(g => [g, coreCount]);
-    if (level !== "principiante") {
-      blueprint.push(["biceps", 1], ["triceps", 1]);
-    }
+    blueprint.push(["biceps", level === "principiante" ? 1 : 2], ["triceps", level === "principiante" ? 1 : 2]);
     return blueprint;
   }
 
