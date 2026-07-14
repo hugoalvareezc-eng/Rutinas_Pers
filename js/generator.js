@@ -18,11 +18,15 @@ const MUSCLE_LABELS = {
 
 const FULLBODY_GROUPS = ["pecho", "espalda", "pierna", "hombro", "abs"];
 
+/* Los tres músculos "grandes": cuando se combinan con otros, reciben
+   un ejercicio extra para no perder prioridad frente a músculos chicos. */
+const LARGE_MUSCLES = ["pecho", "espalda", "pierna"];
+
 /* Subgrupos que deben estar representados dentro de un grupo muscular,
    para que la selección aleatoria no favorezca solo un patrón (ej. puro
-   cuádriceps en pierna, dejando fuera el femoral). */
+   cuádriceps en pierna, dejando fuera las máquinas de femoral). */
 const MANDATORY_SUBGROUPS = {
-  pierna: ["quad", "femoral", "pantorrilla"]
+  pierna: ["quad", "femoral_compound", "femoral_machine", "pantorrilla"]
 };
 
 function shuffle(arr) {
@@ -74,9 +78,9 @@ function pickExercises(group, count, ctx, usedNames) {
    nunca se sienta ni demasiado corta ni excesivamente larga. */
 const PER_GROUP_COUNT = {
   1: { principiante: 5, intermedio: 5, avanzado: 6 },
-  2: { principiante: 4, intermedio: 5, avanzado: 5 },
-  3: { principiante: 4, intermedio: 4, avanzado: 4 },
-  4: { principiante: 3, intermedio: 4, avanzado: 4 }
+  2: { principiante: 4, intermedio: 5, avanzado: 6 },
+  3: { principiante: 4, intermedio: 4, avanzado: 5 },
+  4: { principiante: 4, intermedio: 4, avanzado: 4 }
 };
 
 function perGroupCount(groupCount, level) {
@@ -85,7 +89,8 @@ function perGroupCount(groupCount, level) {
 }
 
 /* Arma la plantilla de la sesión: qué grupos musculares y cuántos
-   ejercicios de cada uno. */
+   ejercicios de cada uno. Al combinar varios músculos, los grandes
+   (pecho, espalda, pierna) reciben un ejercicio extra sobre el resto. */
 function buildBlueprint(muscles, level) {
   if (muscles.includes("fullbody")) {
     const blueprint = FULLBODY_GROUPS.map(g => [g, 2]);
@@ -93,8 +98,9 @@ function buildBlueprint(muscles, level) {
     return blueprint;
   }
 
-  const count = perGroupCount(muscles.length, level);
-  return muscles.map(g => [g, count]);
+  const base = perGroupCount(muscles.length, level);
+  const isCombo = muscles.length > 1;
+  return muscles.map(g => [g, base + (isCombo && LARGE_MUSCLES.includes(g) ? 1 : 0)]);
 }
 
 function buildTitle(muscles) {
