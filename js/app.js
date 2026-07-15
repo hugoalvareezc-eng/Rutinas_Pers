@@ -155,7 +155,31 @@ form.addEventListener("submit", (e) => {
 });
 
 /* ---------- Render results ---------- */
+let currentRoutine = null;
+
+function exerciseCardHTML(ex, opts) {
+  const schemeText = opts.schemeLabel || `${opts.scheme.sets}x${opts.scheme.reps}`;
+  const swapAttrs = opts.scope === "cardio"
+    ? `data-scope="cardio" data-muscle="cardio"`
+    : `data-scope="block" data-muscle="${opts.muscle}" data-block-idx="${opts.blockIdx}" data-ex-idx="${opts.exIdx}"`;
+
+  return `
+    <div class="exercise">
+      <div class="exercise__icon">${renderMovementIcon(ex.pattern)}</div>
+      <div class="exercise__body">
+        <div class="exercise__head">
+          <span class="exercise__name">${ex.name}</span>
+          <span class="exercise__scheme">${schemeText}</span>
+        </div>
+        <p class="exercise__tip">💡 ${ex.tip}</p>
+        <button type="button" class="exercise__swap" ${swapAttrs}>⟲ Cambiar ejercicio</button>
+      </div>
+    </div>
+  `;
+}
+
 function renderResults(routine, name) {
+  currentRoutine = routine;
   const { profile, scheme, nutrition, title, warmup, blocks, cardioFinisher, cooldown, totalExercises, generalNotes } = routine;
 
   document.getElementById("resultsTitle").textContent =
@@ -176,19 +200,6 @@ function renderResults(routine, name) {
     ? `<ul>${generalNotes.map(n => `<li>${n}</li>`).join("")}</ul>`
     : "";
 
-  const exerciseHTML = (ex, schemeLabel) => `
-    <div class="exercise">
-      <div class="exercise__icon">${renderMovementIcon(ex.pattern)}</div>
-      <div class="exercise__body">
-        <div class="exercise__head">
-          <span class="exercise__name">${ex.name}</span>
-          <span class="exercise__scheme">${schemeLabel || `${scheme.sets}x${scheme.reps}`}</span>
-        </div>
-        <p class="exercise__tip">💡 ${ex.tip}</p>
-      </div>
-    </div>
-  `;
-
   const sessionEl = document.getElementById("resultsSession");
   sessionEl.innerHTML = `
     <div class="session-card">
@@ -197,14 +208,14 @@ function renderResults(routine, name) {
 
       <p class="session-card__scheme-note">${scheme.sets} series x ${scheme.reps} reps · Descanso ${scheme.rest}</p>
 
-      ${blocks.map(block => `
+      ${blocks.map((block, blockIdx) => `
         <h3 class="session-card__muscle">${block.label}</h3>
-        ${block.exercises.map(ex => exerciseHTML(ex)).join("")}
+        ${block.exercises.map((ex, exIdx) => exerciseCardHTML(ex, { scheme, muscle: block.muscle, scope: "block", blockIdx, exIdx })).join("")}
       `).join("")}
 
       ${cardioFinisher ? `
         <p class="session-card__block-title">Finisher de cardio</p>
-        ${exerciseHTML(cardioFinisher, "3 x 45 seg")}
+        ${exerciseCardHTML(cardioFinisher, { scheme, schemeLabel: "3 x 45 seg", scope: "cardio" })}
       ` : ""}
 
       <p class="session-card__block-title">Enfriamiento</p>
@@ -217,6 +228,34 @@ function renderResults(routine, name) {
     <p>${nutrition}</p>
   `;
 }
+
+/* ---------- Cambiar ejercicio (swap) ---------- */
+document.getElementById("resultsSession").addEventListener("click", (e) => {
+  const btn = e.target.closest(".exercise__swap");
+  if (!btn || !currentRoutine) return;
+
+  const muscle = btn.dataset.muscle;
+  const replacement = pickReplacement(muscle, currentRoutine.ctx, currentRoutine.usedNames);
+
+  if (!replacement) {
+    btn.disabled = true;
+    btn.textContent = "No hay más opciones para este músculo";
+    return;
+  }
+
+  let opts;
+  if (btn.dataset.scope === "cardio") {
+    currentRoutine.cardioFinisher = replacement;
+    opts = { scheme: currentRoutine.scheme, schemeLabel: "3 x 45 seg", scope: "cardio" };
+  } else {
+    const blockIdx = Number(btn.dataset.blockIdx);
+    const exIdx = Number(btn.dataset.exIdx);
+    currentRoutine.blocks[blockIdx].exercises[exIdx] = replacement;
+    opts = { scheme: currentRoutine.scheme, muscle, scope: "block", blockIdx, exIdx };
+  }
+
+  btn.closest(".exercise").outerHTML = exerciseCardHTML(replacement, opts);
+});
 
 /* ---------- Print & Restart ---------- */
 document.getElementById("btnPrint").addEventListener("click", () => window.print());

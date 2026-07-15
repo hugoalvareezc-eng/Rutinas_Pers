@@ -265,6 +265,14 @@ button{ font-family: inherit; cursor:pointer; }
 .exercise__name{ font-weight:700; color: var(--text); font-size:.95rem; }
 .exercise__scheme{ font-size:.78rem; color: var(--gold); white-space:nowrap; font-weight:700; }
 .exercise__tip{ font-size:.85rem; color: var(--text-faint); margin: .35em 0 0; }
+.exercise__swap{
+  display:inline-flex; align-items:center; gap:.35em; margin-top:.6em;
+  background:none; border:1px solid var(--border); color: var(--text-dim);
+  font-size:.76rem; font-weight:700; padding:.4em .8em; border-radius:999px;
+  transition: all .2s ease;
+}
+.exercise__swap:hover{ border-color: var(--gold); color: var(--gold-light); background: rgba(212,175,55,0.06); }
+.exercise__swap:disabled{ opacity:.5; cursor:not-allowed; border-style:dashed; }
 
 .results__nutrition{
   max-width:780px; margin: 3rem auto 0; background: rgba(212,175,55,0.05); border:1px solid var(--border-strong);

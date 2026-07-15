@@ -73,6 +73,28 @@ function pickExercises(group, count, ctx, usedNames) {
   return chosen;
 }
 
+/* Elige UN reemplazo para un ejercicio puntual (botón "Cambiar ejercicio").
+   No aplica la regla de subgrupos obligatorios (esa es solo para armar la
+   plantilla inicial); aquí simplemente evita repetidos y prioriza compuestos. */
+function pickReplacement(group, ctx, usedNames) {
+  const pool = EXERCISES[group] || [];
+  const { avoidHighImpact } = ctx;
+
+  const available = pool.filter(ex => {
+    if (usedNames.has(ex.name)) return false;
+    if (avoidHighImpact && ex.impact === "high") return false;
+    return true;
+  });
+
+  const compounds = shuffle(available.filter(e => e.compound));
+  const isolations = shuffle(available.filter(e => !e.compound));
+  const ordered = [...compounds, ...isolations];
+
+  const chosen = ordered[0] || null;
+  if (chosen) usedNames.add(chosen.name);
+  return chosen;
+}
+
 /* Cuántos ejercicios por grupo muscular según cuántos grupos se eligieron.
    Se mantiene moderado y consistente entre niveles para que la sesión
    nunca se sienta ni demasiado corta ni excesivamente larga. */
@@ -149,7 +171,9 @@ function buildRoutine(profile) {
     cardioFinisher,
     cooldown: COOLDOWN,
     totalExercises,
-    generalNotes: buildGeneralNotes(profile)
+    generalNotes: buildGeneralNotes(profile),
+    ctx,
+    usedNames
   };
 }
 
