@@ -176,13 +176,16 @@ function renderResults(routine, name) {
     ? `<ul>${generalNotes.map(n => `<li>${n}</li>`).join("")}</ul>`
     : "";
 
-  const exerciseHTML = (ex) => `
+  const exerciseHTML = (ex, schemeLabel) => `
     <div class="exercise">
-      <div class="exercise__head">
-        <span class="exercise__name">${ex.name}</span>
-        <span class="exercise__scheme">${scheme.sets}x${scheme.reps}</span>
+      <div class="exercise__icon">${renderMovementIcon(ex.pattern)}</div>
+      <div class="exercise__body">
+        <div class="exercise__head">
+          <span class="exercise__name">${ex.name}</span>
+          <span class="exercise__scheme">${schemeLabel || `${scheme.sets}x${scheme.reps}`}</span>
+        </div>
+        <p class="exercise__tip">💡 ${ex.tip}</p>
       </div>
-      <p class="exercise__tip">💡 ${ex.tip}</p>
     </div>
   `;
 
@@ -196,18 +199,12 @@ function renderResults(routine, name) {
 
       ${blocks.map(block => `
         <h3 class="session-card__muscle">${block.label}</h3>
-        ${block.exercises.map(exerciseHTML).join("")}
+        ${block.exercises.map(ex => exerciseHTML(ex)).join("")}
       `).join("")}
 
       ${cardioFinisher ? `
         <p class="session-card__block-title">Finisher de cardio</p>
-        <div class="exercise">
-          <div class="exercise__head">
-            <span class="exercise__name">${cardioFinisher.name}</span>
-            <span class="exercise__scheme">3 x 45 seg</span>
-          </div>
-          <p class="exercise__tip">💡 ${cardioFinisher.tip}</p>
-        </div>
+        ${exerciseHTML(cardioFinisher, "3 x 45 seg")}
       ` : ""}
 
       <p class="session-card__block-title">Enfriamiento</p>
