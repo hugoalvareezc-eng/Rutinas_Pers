@@ -171,6 +171,7 @@ function exerciseCardHTML(ex, opts) {
           <span class="exercise__name">${ex.name}</span>
           <span class="exercise__scheme">${schemeText}</span>
         </div>
+        ${ex.sub ? `<span class="exercise__target">🎯 ${SUB_LABELS[ex.sub]}</span>` : ""}
         <p class="exercise__tip">💡 ${ex.tip}</p>
         <button type="button" class="exercise__swap" ${swapAttrs}>⟲ Cambiar ejercicio</button>
       </div>

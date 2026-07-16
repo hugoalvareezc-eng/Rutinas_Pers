@@ -11,7 +11,18 @@
    elípticas y peso libre completo (barras, barras W, mancuernas).
    impact: 'high' se evita en perfiles de edad avanzada (55+)
    pattern: patrón de movimiento usado para elegir el icono ilustrativo
+   sub: subgrupo específico dentro de pierna (ver SUB_LABELS)
 ============================================================ */
+
+/* Etiqueta visible que indica a qué apunta cada ejercicio de pierna */
+const SUB_LABELS = {
+  quad: "Cuádriceps",
+  femoral_compound: "Femoral",
+  femoral_machine: "Femoral (máquina)",
+  aductor: "Aductor",
+  abductor: "Abductor",
+  pantorrilla: "Pantorrilla"
+};
 
 const EXERCISES = {
   pecho: [

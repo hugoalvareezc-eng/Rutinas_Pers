@@ -18,16 +18,10 @@ const MUSCLE_LABELS = {
 
 const FULLBODY_GROUPS = ["pecho", "espalda", "pierna", "hombro", "abs"];
 
-/* Los tres músculos "grandes": cuando se combinan con otros, reciben
-   un ejercicio extra para no perder prioridad frente a músculos chicos. */
+/* Los tres músculos "grandes": cuando se combinan con otros, mantienen
+   casi el mismo volumen que si se hubieran elegido solos, en vez de
+   recortarse al nivel de un músculo chico. */
 const LARGE_MUSCLES = ["pecho", "espalda", "pierna"];
-
-/* Subgrupos que deben estar representados dentro de un grupo muscular,
-   para que la selección aleatoria no favorezca solo un patrón (ej. puro
-   cuádriceps en pierna, dejando fuera las máquinas de femoral). */
-const MANDATORY_SUBGROUPS = {
-  pierna: ["quad", "femoral_compound", "femoral_machine", "pantorrilla"]
-};
 
 function shuffle(arr) {
   const a = [...arr];
@@ -39,9 +33,8 @@ function shuffle(arr) {
 }
 
 /* Selecciona ejercicios de un grupo muscular según la edad del usuario,
-   evitando repetir ejercicios ya usados en la misma sesión (usedNames).
-   Si el grupo tiene subgrupos obligatorios, garantiza al menos uno de
-   cada subgrupo antes de rellenar el resto priorizando compuestos. */
+   evitando repetir ejercicios ya usados en la misma sesión (usedNames),
+   priorizando compuestos sobre aislamiento. */
 function pickExercises(group, count, ctx, usedNames) {
   const pool = EXERCISES[group] || [];
   const { avoidHighImpact } = ctx;
@@ -52,30 +45,77 @@ function pickExercises(group, count, ctx, usedNames) {
     return true;
   });
 
-  const chosen = [];
-  const mandatorySubs = MANDATORY_SUBGROUPS[group] || [];
-  mandatorySubs.forEach(sub => {
-    if (chosen.length >= count) return;
-    const options = shuffle(available.filter(e => e.sub === sub && !chosen.includes(e)));
-    if (options.length) chosen.push(options[0]);
-  });
+  const compounds = shuffle(available.filter(e => e.compound));
+  const isolations = shuffle(available.filter(e => !e.compound));
+  const ordered = [...compounds, ...isolations];
 
-  const remaining = available.filter(e => !chosen.includes(e));
-  const compounds = shuffle(remaining.filter(e => e.compound));
-  const isolations = shuffle(remaining.filter(e => !e.compound));
-  const rest = [...compounds, ...isolations];
-
-  while (chosen.length < count && rest.length) {
-    chosen.push(rest.shift());
-  }
-
+  const chosen = ordered.slice(0, count);
   chosen.forEach(ex => usedNames.add(ex.name));
   return chosen;
 }
 
+/* Pierna necesita una selección dedicada: si se deja al azar, los
+   compuestos (mayoría sentadillas/prensa = cuádriceps) desplazan casi
+   siempre al femoral. Aquí se reparte el cupo mitad y mitad entre
+   cuádriceps y femoral (cuádriceps nunca más de 1 por encima), se
+   reserva un cupo de pantorrilla, y dentro de femoral se asegura que
+   aparezca al menos una máquina (curl acostado/de pie), no solo
+   peso muerto rumano. */
+function pickLegExercises(count, ctx, usedNames) {
+  const pool = EXERCISES.pierna;
+  const { avoidHighImpact } = ctx;
+
+  const available = pool.filter(ex => {
+    if (usedNames.has(ex.name)) return false;
+    if (avoidHighImpact && ex.impact === "high") return false;
+    return true;
+  });
+
+  const bySub = (sub) => shuffle(available.filter(e => e.sub === sub));
+
+  const calfSlots = count >= 4 ? 1 : 0;
+  const remaining = count - calfSlots;
+  const femoralSlots = Math.floor(remaining / 2);
+  const quadSlots = remaining - femoralSlots;
+
+  const chosen = [];
+
+  if (calfSlots) {
+    const calf = bySub("pantorrilla")[0];
+    if (calf) chosen.push(calf);
+  }
+
+  const femoralMachine = bySub("femoral_machine");
+  const femoralCompound = bySub("femoral_compound");
+  const femoralChosen = [];
+  if (femoralSlots >= 1 && femoralMachine.length) femoralChosen.push(femoralMachine.shift());
+  if (femoralSlots >= 2 && femoralCompound.length) femoralChosen.push(femoralCompound.shift());
+  const femoralLeftover = shuffle([...femoralMachine, ...femoralCompound]);
+  while (femoralChosen.length < femoralSlots && femoralLeftover.length) {
+    femoralChosen.push(femoralLeftover.shift());
+  }
+  chosen.push(...femoralChosen);
+
+  const quadPool = available.filter(e => e.sub === "quad");
+  const quadCompounds = shuffle(quadPool.filter(e => e.compound));
+  const quadIsolations = shuffle(quadPool.filter(e => !e.compound));
+  chosen.push(...[...quadCompounds, ...quadIsolations].slice(0, quadSlots));
+
+  // si algún subgrupo se quedó corto (pool agotado), rellena con lo que quede
+  while (chosen.length < count) {
+    const chosenNames = new Set(chosen.map(e => e.name));
+    const leftover = shuffle(available.filter(e => !chosenNames.has(e.name)));
+    if (!leftover.length) break;
+    chosen.push(leftover[0]);
+  }
+
+  const result = chosen.slice(0, count);
+  result.forEach(ex => usedNames.add(ex.name));
+  return result;
+}
+
 /* Elige UN reemplazo para un ejercicio puntual (botón "Cambiar ejercicio").
-   No aplica la regla de subgrupos obligatorios (esa es solo para armar la
-   plantilla inicial); aquí simplemente evita repetidos y prioriza compuestos. */
+   Simplemente evita repetidos y prioriza compuestos. */
 function pickReplacement(group, ctx, usedNames) {
   const pool = EXERCISES[group] || [];
   const { avoidHighImpact } = ctx;
@@ -95,15 +135,18 @@ function pickReplacement(group, ctx, usedNames) {
   return chosen;
 }
 
-/* Cuántos ejercicios por grupo muscular según cuántos grupos se eligieron.
-   Se mantiene moderado y consistente entre niveles para que la sesión
-   nunca se sienta ni demasiado corta ni excesivamente larga. */
+/* Cantidad de ejercicios para un músculo "chico" (o único) cuando se
+   combina con otros. El músculo grande (ver SINGLE_MUSCLE_COUNT) no
+   usa esta tabla: conserva casi el mismo volumen que si estuviera solo. */
 const PER_GROUP_COUNT = {
-  1: { principiante: 5, intermedio: 5, avanzado: 6 },
-  2: { principiante: 4, intermedio: 5, avanzado: 6 },
-  3: { principiante: 4, intermedio: 4, avanzado: 5 },
-  4: { principiante: 4, intermedio: 4, avanzado: 4 }
+  2: { principiante: 3, intermedio: 4, avanzado: 4 },
+  3: { principiante: 3, intermedio: 3, avanzado: 4 },
+  4: { principiante: 3, intermedio: 3, avanzado: 3 }
 };
+
+/* Volumen de un músculo elegido solo, y también el que recibe un
+   músculo "grande" (pecho/espalda/pierna) dentro de una combinación. */
+const SINGLE_MUSCLE_COUNT = { principiante: 5, intermedio: 5, avanzado: 6 };
 
 function perGroupCount(groupCount, level) {
   const key = Math.min(groupCount, 4);
@@ -112,7 +155,8 @@ function perGroupCount(groupCount, level) {
 
 /* Arma la plantilla de la sesión: qué grupos musculares y cuántos
    ejercicios de cada uno. Al combinar varios músculos, los grandes
-   (pecho, espalda, pierna) reciben un ejercicio extra sobre el resto. */
+   (pecho, espalda, pierna) mantienen casi el volumen de un día
+   dedicado solo a ellos, mientras los chicos usan el cupo reducido. */
 function buildBlueprint(muscles, level) {
   if (muscles.includes("fullbody")) {
     const blueprint = FULLBODY_GROUPS.map(g => [g, 2]);
@@ -120,9 +164,12 @@ function buildBlueprint(muscles, level) {
     return blueprint;
   }
 
-  const base = perGroupCount(muscles.length, level);
-  const isCombo = muscles.length > 1;
-  return muscles.map(g => [g, base + (isCombo && LARGE_MUSCLES.includes(g) ? 1 : 0)]);
+  if (muscles.length === 1) {
+    return [[muscles[0], SINGLE_MUSCLE_COUNT[level]]];
+  }
+
+  const smallCount = perGroupCount(muscles.length, level);
+  return muscles.map(g => [g, LARGE_MUSCLES.includes(g) ? SINGLE_MUSCLE_COUNT[level] : smallCount]);
 }
 
 function buildTitle(muscles) {
@@ -149,7 +196,9 @@ function buildRoutine(profile) {
     .map(([group, count]) => ({
       muscle: group,
       label: MUSCLE_LABELS[group],
-      exercises: pickExercises(group, count, ctx, usedNames)
+      exercises: group === "pierna"
+        ? pickLegExercises(count, ctx, usedNames)
+        : pickExercises(group, count, ctx, usedNames)
     }))
     .filter(block => block.exercises.length > 0);
 
