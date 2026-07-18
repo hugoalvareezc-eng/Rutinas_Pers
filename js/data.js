@@ -11,17 +11,14 @@
    elípticas y peso libre completo (barras, barras W, mancuernas).
    impact: 'high' se evita en perfiles de edad avanzada (55+)
    pattern: patrón de movimiento usado para elegir el icono ilustrativo
-   sub: subgrupo específico dentro de pierna (ver SUB_LABELS)
+   sub: solo en femoral, distingue peso libre de máquina (ver SUB_LABELS)
 ============================================================ */
 
-/* Etiqueta visible que indica a qué apunta cada ejercicio de pierna */
+/* Etiqueta visible para distinguir, dentro de Femoral, si el ejercicio
+   es de cadena posterior con peso libre o en máquina */
 const SUB_LABELS = {
-  quad: "Cuádriceps",
-  femoral_compound: "Femoral",
-  femoral_machine: "Femoral (máquina)",
-  aductor: "Aductor",
-  abductor: "Abductor",
-  pantorrilla: "Pantorrilla"
+  femoral_compound: "Cadena posterior",
+  femoral_machine: "Máquina"
 };
 
 const EXERCISES = {
@@ -118,29 +115,32 @@ const EXERCISES = {
       tip: "Sube los hombros directo hacia arriba, sin rodarlos, y controla la bajada." }
   ],
 
-  pierna: [
-    { name: "Sentadilla libre con barra (jaula)", compound: true, sub: "quad", pattern: "squat",
+  cuadriceps: [
+    { name: "Sentadilla libre con barra (jaula)", compound: true, pattern: "squat",
       tip: "Rodillas alineadas con la punta de los pies; baja manteniendo la curvatura lumbar natural." },
-    { name: "Sentadilla en Smith", compound: true, sub: "quad", pattern: "squat",
+    { name: "Sentadilla en Smith", compound: true, pattern: "squat",
       tip: "El riel fija la trayectoria; adelanta un poco los pies para que la rodilla no se vaya de más al bajar." },
-    { name: "Sentadilla hack en máquina", compound: true, sub: "quad", pattern: "squat",
+    { name: "Sentadilla hack en máquina", compound: true, pattern: "squat",
       tip: "Espalda pegada al respaldo; baja controlado sin despegar los talones de la plataforma." },
-    { name: "Sentadilla perfecta (máquina guiada)", compound: true, sub: "quad", pattern: "squat",
+    { name: "Sentadilla perfecta (máquina guiada)", compound: true, pattern: "squat",
       tip: "El movimiento guiado protege la zona lumbar; concéntrate en empujar con todo el pie." },
-    { name: "Sentadilla goblet con mancuerna", compound: true, sub: "quad", pattern: "squat",
+    { name: "Sentadilla goblet con mancuerna", compound: true, pattern: "squat",
       tip: "Sostén la mancuerna pegada al pecho; te ayuda a mantener el torso más erguido." },
-    { name: "Sentadilla búlgara con mancuernas", sub: "quad", pattern: "lunge",
+    { name: "Sentadilla búlgara con mancuernas", pattern: "lunge",
       tip: "Pie trasero elevado en un banco; concéntrate en la pierna delantera en toda la fase." },
-    { name: "Prensa de piernas lineal", compound: true, sub: "quad", pattern: "leg_press",
+    { name: "Prensa de piernas lineal", compound: true, pattern: "leg_press",
       tip: "No bloquees por completo la rodilla al extender; controla siempre el descenso." },
-    { name: "Prensa de piernas articulada (45°)", compound: true, sub: "quad", pattern: "leg_press",
+    { name: "Prensa de piernas articulada (45°)", compound: true, pattern: "leg_press",
       tip: "El recorrido angulado permite más carga; mantén la zona lumbar pegada al respaldo sin despegarla." },
-    { name: "Zancadas con mancuernas", sub: "quad", pattern: "lunge",
+    { name: "Zancadas con mancuernas", pattern: "lunge",
       tip: "Paso amplio, baja la rodilla trasera casi hasta rozar el piso sin golpearlo." },
-    { name: "Extensión de cuádriceps en máquina", sub: "quad", pattern: "leg_extension",
+    { name: "Extensión de cuádriceps en máquina", pattern: "leg_extension",
       tip: "Controla la bajada; no dejes caer el peso de golpe." },
-    { name: "Sentadilla con salto", impact: "high", sub: "quad", pattern: "squat",
-      tip: "Aterriza suave flexionando la rodilla para absorber el impacto." },
+    { name: "Sentadilla con salto", impact: "high", pattern: "squat",
+      tip: "Aterriza suave flexionando la rodilla para absorber el impacto." }
+  ],
+
+  femoral: [
     { name: "Peso muerto rumano con barra", compound: true, sub: "femoral_compound", pattern: "hinge",
       tip: "La barra rueda pegada a las piernas; la bisagra ocurre en la cadera, no en la zona lumbar." },
     { name: "Peso muerto rumano con mancuernas", compound: true, sub: "femoral_compound", pattern: "hinge",
@@ -150,14 +150,13 @@ const EXERCISES = {
     { name: "Curl femoral acostado en máquina", sub: "femoral_machine", pattern: "leg_curl",
       tip: "Evita despegar la cadera del banco; el jalón lo hace el isquiotibial, no la cadera." },
     { name: "Curl femoral de pie en máquina", sub: "femoral_machine", pattern: "leg_curl",
-      tip: "Trabaja una pierna a la vez; flexiona completo apretando el isquiotibial arriba." },
-    { name: "Aducción de cadera en máquina", sub: "aductor", pattern: "hip_machine",
-      tip: "Movimiento lento y controlado juntando las piernas contra la resistencia; sin usar impulso." },
-    { name: "Abducción de cadera en máquina", sub: "abductor", pattern: "hip_machine",
-      tip: "Inclina ligeramente el torso hacia adelante para enfatizar más el glúteo medio." },
-    { name: "Elevación de talones de pie en máquina", sub: "pantorrilla", pattern: "calf",
+      tip: "Trabaja una pierna a la vez; flexiona completo apretando el isquiotibial arriba." }
+  ],
+
+  pantorrilla: [
+    { name: "Elevación de talones de pie en máquina", pattern: "calf",
       tip: "Sube hasta la punta del pie y baja con control sintiendo el estiramiento en la pantorrilla." },
-    { name: "Elevación de talones sentado en máquina", sub: "pantorrilla", pattern: "calf",
+    { name: "Elevación de talones sentado en máquina", pattern: "calf",
       tip: "Con la rodilla flexionada se enfatiza el sóleo; sube completo y controla la bajada." }
   ],
 
@@ -170,8 +169,10 @@ const EXERCISES = {
       tip: "Movimiento lento y controlado; empuja con el talón sin arquear la zona lumbar." },
     { name: "Patada de glúteo en polea", pattern: "glute_kickback",
       tip: "Mantén el torso estable apoyado en el equipo; evita usar impulso de la cadera." },
-    { name: "Abducción de cadera en máquina (glúteo medio)", pattern: "hip_machine",
+    { name: "Abducción de cadera en máquina", pattern: "hip_machine",
       tip: "Inclina ligeramente el torso hacia adelante para enfatizar más el glúteo medio." },
+    { name: "Aducción de cadera en máquina", pattern: "hip_machine",
+      tip: "Movimiento lento y controlado juntando las piernas contra la resistencia; sin usar impulso." },
     { name: "Peso muerto rumano a una pierna con mancuerna", pattern: "hinge",
       tip: "Mantén la cadera cuadrada; apóyate en una pared o silla si te falta equilibrio al inicio." },
     { name: "Sentadilla búlgara con mancuernas", pattern: "lunge",
@@ -212,6 +213,21 @@ const EXERCISES = {
       tip: "No bajes en exceso si sientes molestia en el hombro; controla siempre el descenso." },
     { name: "Flexiones de agarre cerrado (diamante)", pattern: "pushup",
       tip: "Manos juntas bajo el pecho formando un diamante; codos cerca del torso." }
+  ],
+
+  antebrazo: [
+    { name: "Curl de muñeca con barra", pattern: "curl",
+      tip: "Apoya los antebrazos en el banco o en las piernas; solo la muñeca se mueve, sube completo y controla la bajada." },
+    { name: "Curl de muñeca inverso con barra", pattern: "curl",
+      tip: "Palmas hacia abajo; sube la barra doblando solo la muñeca para trabajar el extensor del antebrazo." },
+    { name: "Curl de muñeca con mancuerna alterno", pattern: "curl",
+      tip: "Apoya el antebrazo en el muslo; trabaja una mano a la vez para enfocarte mejor en cada lado." },
+    { name: "Curl de antebrazo en polea con barra recta", pattern: "curl",
+      tip: "Mantén el antebrazo fijo sobre el muslo o un banco; solo la muñeca hace el recorrido." },
+    { name: "Paseo del granjero con mancuernas", compound: true, pattern: "carry",
+      tip: "Aprieta fuerte el agarre y camina con el torso erguido, sin encoger los hombros hacia las orejas." },
+    { name: "Dead hang en barra de dominadas", pattern: "pull_vertical",
+      tip: "Cuélgate con los brazos extendidos y el core activado; aguanta el tiempo indicado sin balancear el cuerpo." }
   ],
 
   abs: [

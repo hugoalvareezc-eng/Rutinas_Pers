@@ -52,6 +52,8 @@ const MOVEMENT_ICONS = {
 
   triceps_extension: `<circle cx="27" cy="9" r="5"/><path d="M27 14 L27 39"/><path d="M31 17 L36 8"/><path d="M36 8 L41 21"/><path d="M27 39 L22 58"/><path d="M27 39 L31 58"/>`,
 
+  carry: `<circle cx="32" cy="9" r="5"/><path d="M32 14 L32 38"/><path d="M32 18 L20 38"/><circle cx="20" cy="41" r="3"/><path d="M32 18 L44 38"/><circle cx="44" cy="41" r="3"/><path d="M32 38 L26 58"/><path d="M32 38 L40 52"/>`,
+
   core_crunch: `<path d="M8 49 H22"/><circle cx="6" cy="42" r="5"/><path d="M22 49 L29 37"/><path d="M29 37 L29 49"/>`,
 
   core_plank: `<circle cx="9" cy="25" r="5"/><path d="M14 27 L51 32"/><path d="M19 28 V44"/><path d="M45 31 L55 44"/>`,

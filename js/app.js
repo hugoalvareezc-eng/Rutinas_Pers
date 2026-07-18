@@ -159,9 +159,7 @@ let currentRoutine = null;
 
 function exerciseCardHTML(ex, opts) {
   const schemeText = opts.schemeLabel || `${opts.scheme.sets}x${opts.scheme.reps}`;
-  const swapAttrs = opts.scope === "cardio"
-    ? `data-scope="cardio" data-muscle="cardio"`
-    : `data-scope="block" data-muscle="${opts.muscle}" data-block-idx="${opts.blockIdx}" data-ex-idx="${opts.exIdx}"`;
+  const swapAttrs = `data-muscle="${opts.muscle}" data-block-idx="${opts.blockIdx}" data-ex-idx="${opts.exIdx}"`;
 
   return `
     <div class="exercise">
@@ -181,7 +179,7 @@ function exerciseCardHTML(ex, opts) {
 
 function renderResults(routine, name) {
   currentRoutine = routine;
-  const { profile, scheme, nutrition, title, warmup, blocks, cardioFinisher, cooldown, totalExercises, generalNotes } = routine;
+  const { profile, scheme, nutrition, title, warmup, blocks, cooldown, totalExercises, generalNotes } = routine;
 
   document.getElementById("resultsTitle").textContent =
     name ? `Rutina de ${title} de ${name}` : `Rutina de ${title}`;
@@ -211,13 +209,14 @@ function renderResults(routine, name) {
 
       ${blocks.map((block, blockIdx) => `
         <h3 class="session-card__muscle">${block.label}</h3>
-        ${block.exercises.map((ex, exIdx) => exerciseCardHTML(ex, { scheme, muscle: block.muscle, scope: "block", blockIdx, exIdx })).join("")}
+        ${block.exercises.map((ex, exIdx) => exerciseCardHTML(ex, {
+          scheme,
+          schemeLabel: block.isCardio ? "3 x 45 seg" : null,
+          muscle: block.muscle,
+          blockIdx,
+          exIdx
+        })).join("")}
       `).join("")}
-
-      ${cardioFinisher ? `
-        <p class="session-card__block-title">Finisher de cardio</p>
-        ${exerciseCardHTML(cardioFinisher, { scheme, schemeLabel: "3 x 45 seg", scope: "cardio" })}
-      ` : ""}
 
       <p class="session-card__block-title">Enfriamiento</p>
       <p class="session-card__cooldown">${cooldown}</p>
@@ -244,16 +243,18 @@ document.getElementById("resultsSession").addEventListener("click", (e) => {
     return;
   }
 
-  let opts;
-  if (btn.dataset.scope === "cardio") {
-    currentRoutine.cardioFinisher = replacement;
-    opts = { scheme: currentRoutine.scheme, schemeLabel: "3 x 45 seg", scope: "cardio" };
-  } else {
-    const blockIdx = Number(btn.dataset.blockIdx);
-    const exIdx = Number(btn.dataset.exIdx);
-    currentRoutine.blocks[blockIdx].exercises[exIdx] = replacement;
-    opts = { scheme: currentRoutine.scheme, muscle, scope: "block", blockIdx, exIdx };
-  }
+  const blockIdx = Number(btn.dataset.blockIdx);
+  const exIdx = Number(btn.dataset.exIdx);
+  const block = currentRoutine.blocks[blockIdx];
+  block.exercises[exIdx] = replacement;
+
+  const opts = {
+    scheme: currentRoutine.scheme,
+    schemeLabel: block.isCardio ? "3 x 45 seg" : null,
+    muscle,
+    blockIdx,
+    exIdx
+  };
 
   btn.closest(".exercise").outerHTML = exerciseCardHTML(replacement, opts);
 });
