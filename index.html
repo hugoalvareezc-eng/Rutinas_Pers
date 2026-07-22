@@ -197,6 +197,55 @@
           </div>
           <div class="field">
             <label>¿Qué músculo(s) quieres entrenar hoy?</label>
+            <p class="field__hint">Toca las zonas en el cuerpo, o usa los botones de abajo. Puedes elegir varias.</p>
+
+            <div class="body-diagram">
+              <div class="body-diagram__tabs">
+                <button type="button" class="body-tab active" data-view="front">Vista frontal</button>
+                <button type="button" class="body-tab" data-view="back">Vista trasera</button>
+              </div>
+
+              <div class="body-diagram__view active" data-view="front">
+                <svg viewBox="0 0 200 420" class="body-diagram__figure" role="img" aria-label="Silueta frontal">
+                  <circle class="body-deco" cx="100" cy="28" r="19"/>
+                  <rect class="body-deco" x="90" y="44" width="20" height="16" rx="4"/>
+                  <path class="body-region" data-muscle="pecho" d="M74,60 Q100,52 126,60 L130,110 Q100,120 70,110 Z"><title>Pecho</title></path>
+                  <path class="body-region" data-muscle="abs" d="M70,110 Q100,120 130,110 L134,168 Q100,180 66,168 Z"><title>Abdomen</title></path>
+                  <circle class="body-region" data-muscle="hombro" cx="48" cy="66" r="17"><title>Hombro</title></circle>
+                  <circle class="body-region" data-muscle="hombro" cx="152" cy="66" r="17"><title>Hombro</title></circle>
+                  <rect class="body-region" data-muscle="biceps" x="30" y="80" width="26" height="56" rx="13"><title>Bíceps</title></rect>
+                  <rect class="body-region" data-muscle="biceps" x="144" y="80" width="26" height="56" rx="13"><title>Bíceps</title></rect>
+                  <rect class="body-region" data-muscle="antebrazo" x="28" y="138" width="22" height="62" rx="11"><title>Antebrazo</title></rect>
+                  <rect class="body-region" data-muscle="antebrazo" x="150" y="138" width="22" height="62" rx="11"><title>Antebrazo</title></rect>
+                  <path class="body-deco" d="M66,168 Q100,180 134,168 L138,204 Q100,214 62,204 Z"/>
+                  <rect class="body-region" data-muscle="cuadriceps" x="64" y="206" width="34" height="92" rx="15"><title>Cuádriceps</title></rect>
+                  <rect class="body-region" data-muscle="cuadriceps" x="102" y="206" width="34" height="92" rx="15"><title>Cuádriceps</title></rect>
+                  <rect class="body-deco" x="67" y="298" width="27" height="86" rx="12"/>
+                  <rect class="body-deco" x="106" y="298" width="27" height="86" rx="12"/>
+                </svg>
+              </div>
+
+              <div class="body-diagram__view" data-view="back" style="display:none">
+                <svg viewBox="0 0 200 420" class="body-diagram__figure" role="img" aria-label="Silueta trasera">
+                  <circle class="body-deco" cx="100" cy="28" r="19"/>
+                  <rect class="body-deco" x="90" y="44" width="20" height="16" rx="4"/>
+                  <path class="body-region" data-muscle="espalda" d="M74,60 Q100,52 126,60 L130,110 Q100,120 70,110 Z"><title>Espalda</title></path>
+                  <path class="body-region" data-muscle="espalda" d="M70,110 Q100,120 130,110 L134,168 Q100,180 66,168 Z"><title>Espalda</title></path>
+                  <circle class="body-region" data-muscle="hombro" cx="48" cy="66" r="17"><title>Hombro</title></circle>
+                  <circle class="body-region" data-muscle="hombro" cx="152" cy="66" r="17"><title>Hombro</title></circle>
+                  <rect class="body-region" data-muscle="triceps" x="30" y="80" width="26" height="56" rx="13"><title>Tríceps</title></rect>
+                  <rect class="body-region" data-muscle="triceps" x="144" y="80" width="26" height="56" rx="13"><title>Tríceps</title></rect>
+                  <rect class="body-deco" x="28" y="138" width="22" height="62" rx="11"/>
+                  <rect class="body-deco" x="150" y="138" width="22" height="62" rx="11"/>
+                  <path class="body-region" data-muscle="gluteo" d="M66,168 Q100,180 134,168 L138,204 Q100,214 62,204 Z"><title>Glúteo</title></path>
+                  <rect class="body-region" data-muscle="femoral" x="64" y="206" width="34" height="92" rx="15"><title>Femoral</title></rect>
+                  <rect class="body-region" data-muscle="femoral" x="102" y="206" width="34" height="92" rx="15"><title>Femoral</title></rect>
+                  <rect class="body-region" data-muscle="pantorrilla" x="67" y="298" width="27" height="86" rx="12"><title>Pantorrilla</title></rect>
+                  <rect class="body-region" data-muscle="pantorrilla" x="106" y="298" width="27" height="86" rx="12"><title>Pantorrilla</title></rect>
+                </svg>
+              </div>
+            </div>
+
             <div class="pill-group" data-name="muscles" data-multi="true">
               <button type="button" class="pill pill--fullbody" data-value="fullbody">Cuerpo completo</button>
               <button type="button" class="pill" data-value="pecho">Pecho</button>
@@ -211,7 +260,26 @@
               <button type="button" class="pill" data-value="antebrazo">Antebrazo</button>
               <button type="button" class="pill" data-value="abs">Abdomen</button>
             </div>
-            <p class="field__hint">Puedes elegir varios (ej. Espalda + Bíceps) o "Cuerpo completo" para una sesión de todo el cuerpo.</p>
+          </div>
+
+          <div class="field">
+            <label>¿Cuánto tiempo tienes hoy?</label>
+            <div class="pill-group" data-name="duration">
+              <button type="button" class="pill selected" data-value="completo">Entreno completo</button>
+              <button type="button" class="pill" data-value="rapido">Rápido (~45-60 min)</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>¿Alguna molestia o lesión? (opcional)</label>
+            <div class="pill-group" data-name="limitations" data-multi="true">
+              <button type="button" class="pill" data-value="rodilla">Rodilla</button>
+              <button type="button" class="pill" data-value="hombro">Hombro</button>
+              <button type="button" class="pill" data-value="espalda">Espalda baja</button>
+              <button type="button" class="pill" data-value="muñeca">Muñeca</button>
+              <button type="button" class="pill" data-value="cadera">Cadera</button>
+            </div>
+            <p class="field__hint">Evitamos o marcamos ⚠️ los ejercicios que exigen más esa zona.</p>
           </div>
         </div>
 

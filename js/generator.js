@@ -36,24 +36,41 @@ function shuffle(arr) {
   return a;
 }
 
-/* Selecciona ejercicios de un grupo muscular según la edad del usuario,
-   evitando repetir ejercicios ya usados en la misma sesión (usedNames),
-   priorizando compuestos sobre aislamiento. */
-function pickExercises(group, count, ctx, usedNames) {
-  const pool = EXERCISES[group] || [];
-  const { avoidHighImpact } = ctx;
-
-  const available = pool.filter(ex => {
+/* Filtra por edad (alto impacto) y evita repetidos. Si el usuario marcó
+   alguna molestia/lesión, separa además un set "seguro" sin esos
+   ejercicios; si ese set no alcanza para el cupo pedido, se cae de
+   vuelta al set completo (marcando esos ejercicios con ⚠️ más abajo)
+   en vez de dejar la sesión más corta de lo prometido. */
+function filterByContext(pool, ctx, usedNames) {
+  const { avoidHighImpact, limitations } = ctx;
+  const base = pool.filter(ex => {
     if (usedNames.has(ex.name)) return false;
     if (avoidHighImpact && ex.impact === "high") return false;
     return true;
   });
 
-  const compounds = shuffle(available.filter(e => e.compound));
-  const isolations = shuffle(available.filter(e => !e.compound));
+  if (!limitations || !limitations.length) return { usable: base, limitations };
+
+  const safe = base.filter(ex => !(ex.caution && ex.caution.some(c => limitations.includes(c))));
+  return { usable: safe.length ? safe : base, limitations };
+}
+
+function flagExercise(ex, limitations) {
+  const flagged = !!(limitations && limitations.length && ex.caution && ex.caution.some(c => limitations.includes(c)));
+  return flagged ? { ...ex, flagged: true } : ex;
+}
+
+/* Selecciona ejercicios de un grupo muscular, priorizando compuestos
+   sobre aislamiento. */
+function pickExercises(group, count, ctx, usedNames) {
+  const pool = EXERCISES[group] || [];
+  const { usable, limitations } = filterByContext(pool, ctx, usedNames);
+
+  const compounds = shuffle(usable.filter(e => e.compound));
+  const isolations = shuffle(usable.filter(e => !e.compound));
   const ordered = [...compounds, ...isolations];
 
-  const chosen = ordered.slice(0, count);
+  const chosen = ordered.slice(0, count).map(ex => flagExercise(ex, limitations));
   chosen.forEach(ex => usedNames.add(ex.name));
   return chosen;
 }
@@ -64,16 +81,10 @@ function pickExercises(group, count, ctx, usedNames) {
    fuera; aquí se garantiza que aparezca al menos una máquina. */
 function pickFemoralExercises(count, ctx, usedNames) {
   const pool = EXERCISES.femoral;
-  const { avoidHighImpact } = ctx;
+  const { usable, limitations } = filterByContext(pool, ctx, usedNames);
 
-  const available = pool.filter(ex => {
-    if (usedNames.has(ex.name)) return false;
-    if (avoidHighImpact && ex.impact === "high") return false;
-    return true;
-  });
-
-  const machines = shuffle(available.filter(e => e.sub === "femoral_machine"));
-  const compounds = shuffle(available.filter(e => e.sub === "femoral_compound"));
+  const machines = shuffle(usable.filter(e => e.sub === "femoral_machine"));
+  const compounds = shuffle(usable.filter(e => e.sub === "femoral_compound"));
 
   const chosen = [];
   if (count >= 1 && machines.length) chosen.push(machines.shift());
@@ -81,28 +92,24 @@ function pickFemoralExercises(count, ctx, usedNames) {
   const rest = shuffle([...machines, ...compounds]);
   while (chosen.length < count && rest.length) chosen.push(rest.shift());
 
-  chosen.forEach(ex => usedNames.add(ex.name));
-  return chosen;
+  const flagged = chosen.map(ex => flagExercise(ex, limitations));
+  flagged.forEach(ex => usedNames.add(ex.name));
+  return flagged;
 }
 
-/* Elige UN reemplazo para un ejercicio puntual (botón "Cambiar ejercicio").
-   Simplemente evita repetidos y prioriza compuestos. */
+/* Elige UN reemplazo para un ejercicio puntual (botón "Cambiar ejercicio"). */
 function pickReplacement(group, ctx, usedNames) {
   const pool = EXERCISES[group] || [];
-  const { avoidHighImpact } = ctx;
+  const { usable, limitations } = filterByContext(pool, ctx, usedNames);
 
-  const available = pool.filter(ex => {
-    if (usedNames.has(ex.name)) return false;
-    if (avoidHighImpact && ex.impact === "high") return false;
-    return true;
-  });
-
-  const compounds = shuffle(available.filter(e => e.compound));
-  const isolations = shuffle(available.filter(e => !e.compound));
+  const compounds = shuffle(usable.filter(e => e.compound));
+  const isolations = shuffle(usable.filter(e => !e.compound));
   const ordered = [...compounds, ...isolations];
 
-  const chosen = ordered[0] || null;
-  if (chosen) usedNames.add(chosen.name);
+  const picked = ordered[0];
+  if (!picked) return null;
+  const chosen = flagExercise(picked, limitations);
+  usedNames.add(chosen.name);
   return chosen;
 }
 
@@ -125,33 +132,43 @@ const SINGLE_MUSCLE_COUNT = { principiante: 5, intermedio: 5, avanzado: 6 };
 const GOAL_VOLUME_BONUS = { hipertrofia: 0, perdida_peso: 2, fuerza: 0, tonificacion: 1, resistencia: 2 };
 const CARDIO_FINISHER_COUNT = { hipertrofia: 0, perdida_peso: 2, fuerza: 0, tonificacion: 1, resistencia: 2 };
 
+/* Entreno rápido (~45-60 min): recorta ejercicios por músculo sin
+   dejar la sesión demasiado corta. */
+const DURATION_ADJUST = { completo: 0, rapido: -2 };
+const MIN_PER_GROUP = 3;
+
 function perGroupCount(groupCount, level) {
   const key = Math.min(groupCount, 4);
   return PER_GROUP_COUNT[key][level];
+}
+
+function applyDuration(count, duration) {
+  return Math.max(MIN_PER_GROUP, count + (DURATION_ADJUST[duration] || 0));
 }
 
 /* Arma la plantilla de la sesión: qué grupos musculares y cuántos
    ejercicios de cada uno. Al combinar varios músculos, los grandes
    (pecho, espalda, cuádriceps) mantienen casi el volumen de un día
    dedicado solo a ellos, mientras los chicos usan el cupo reducido.
-   El bono de volumen por objetivo se suma sobre esa base. */
-function buildBlueprint(muscles, level, goal) {
+   El bono de volumen por objetivo se suma sobre esa base, y luego se
+   ajusta según la duración deseada. */
+function buildBlueprint(muscles, level, goal, duration) {
   const bonus = GOAL_VOLUME_BONUS[goal] || 0;
 
+  let blueprint;
   if (muscles.includes("fullbody")) {
     const fullbodyBonus = Math.min(bonus, 1);
-    const blueprint = FULLBODY_GROUPS.map(g => [g, 2 + fullbodyBonus]);
+    blueprint = FULLBODY_GROUPS.map(g => [g, 2 + fullbodyBonus]);
     blueprint.push(["biceps", 1], ["triceps", 1], ["antebrazo", 1], ["pantorrilla", 1]);
-    return blueprint;
+  } else if (muscles.length === 1) {
+    blueprint = [[muscles[0], SINGLE_MUSCLE_COUNT[level] + bonus]];
+  } else {
+    const smallCount = perGroupCount(muscles.length, level) + bonus;
+    const largeCount = SINGLE_MUSCLE_COUNT[level] + bonus;
+    blueprint = muscles.map(g => [g, LARGE_MUSCLES.includes(g) ? largeCount : smallCount]);
   }
 
-  if (muscles.length === 1) {
-    return [[muscles[0], SINGLE_MUSCLE_COUNT[level] + bonus]];
-  }
-
-  const smallCount = perGroupCount(muscles.length, level) + bonus;
-  const largeCount = SINGLE_MUSCLE_COUNT[level] + bonus;
-  return muscles.map(g => [g, LARGE_MUSCLES.includes(g) ? largeCount : smallCount]);
+  return blueprint.map(([g, count]) => [g, applyDuration(count, duration)]);
 }
 
 function buildTitle(muscles) {
@@ -170,14 +187,14 @@ function pickForGroup(group, count, ctx, usedNames) {
 }
 
 function buildRoutine(profile) {
-  const { age, goal, level, muscles } = profile;
+  const { age, goal, level, muscles, limitations, duration } = profile;
 
   const avoidHighImpact = age >= 55;
   const scheme = GOAL_SCHEMES[goal];
-  const ctx = { avoidHighImpact };
+  const ctx = { avoidHighImpact, limitations: limitations || [] };
   const usedNames = new Set();
 
-  const blueprint = buildBlueprint(muscles, level, goal);
+  const blueprint = buildBlueprint(muscles, level, goal, duration);
 
   const blocks = blueprint
     .map(([group, count]) => ({
@@ -187,7 +204,8 @@ function buildRoutine(profile) {
     }))
     .filter(block => block.exercises.length > 0);
 
-  const cardioCount = CARDIO_FINISHER_COUNT[goal] || 0;
+  let cardioCount = CARDIO_FINISHER_COUNT[goal] || 0;
+  if (duration === "rapido") cardioCount = Math.min(cardioCount, 1);
   if (cardioCount > 0) {
     const cardioExercises = pickExercises("cardio", cardioCount, ctx, usedNames);
     if (cardioExercises.length) {
@@ -219,6 +237,12 @@ function buildGeneralNotes(profile) {
   }
   if (profile.age >= 55) {
     notes.push("Se priorizaron ejercicios de bajo impacto para cuidar tus articulaciones. Aumenta el tiempo de calentamiento y progresa las cargas de forma gradual.");
+  }
+  if (profile.limitations && profile.limitations.length) {
+    notes.push("Marcamos con ⚠️ los ejercicios que exigen más la zona que indicaste. Si sientes dolor, usa 'Cambiar ejercicio' o consulta a un profesional de la salud antes de continuar.");
+  }
+  if (profile.duration === "rapido") {
+    notes.push("Esta es una versión condensada para entrenar en aproximadamente una hora. Si te sobra tiempo, agrega 1-2 series extra a tus ejercicios favoritos.");
   }
   notes.push("La progresión es clave: cuando completes todas las series y repeticiones con buena técnica, aumenta el peso ligeramente en tu próxima sesión de este músculo.");
   notes.push("Descansa al menos 48 horas antes de volver a entrenar el mismo grupo muscular y duerme 7-9 horas para una óptima recuperación.");

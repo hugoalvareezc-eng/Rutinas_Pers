@@ -201,6 +201,27 @@ button{ font-family: inherit; cursor:pointer; }
 .pill--fullbody.selected{ border-style: solid; }
 .field__hint{ font-size:.78rem; color: var(--text-faint); margin: .7em 0 0; }
 
+/* ---------- Body diagram (selector de músculos) ---------- */
+.body-diagram{
+  margin: 1rem 0 1.4rem; background: rgba(255,255,255,0.02); border:1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 1rem;
+}
+.body-diagram__tabs{ display:flex; gap:.5rem; justify-content:center; margin-bottom:.9rem; }
+.body-tab{
+  border:1px solid var(--border); background:transparent; color:var(--text-dim);
+  padding:.4em 1.1em; border-radius:999px; font-size:.82rem; font-weight:700; transition: all .2s ease;
+}
+.body-tab.active{ background: rgba(212,175,55,0.12); border-color: var(--border-strong); color: var(--gold-light); }
+.body-diagram__view{ display:flex; justify-content:center; }
+.body-diagram__figure{ width:100%; max-width:220px; height:auto; }
+.body-region{
+  fill: rgba(212,175,55,0.1); stroke: var(--border-strong); stroke-width:1.5;
+  cursor:pointer; transition: fill .18s ease, stroke .18s ease;
+}
+.body-region:hover{ fill: rgba(212,175,55,0.22); }
+.body-region.selected{ fill: var(--gold); stroke: var(--gold-light); }
+.body-deco{ fill: var(--surface-2); stroke: var(--border); stroke-width:1.5; pointer-events:none; }
+
 .option-grid{ display:grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
 .option-card{
   display:flex; flex-direction:column; align-items:center; gap:.5rem; text-align:center;
@@ -270,6 +291,11 @@ button{ font-family: inherit; cursor:pointer; }
   padding:.15em .7em; margin-top:.4em;
 }
 .exercise__tip{ font-size:.85rem; color: var(--text-faint); margin: .35em 0 0; }
+.exercise__caution{
+  display:inline-block; font-size:.72rem; font-weight:700; color: var(--crimson-light);
+  background: rgba(156,28,46,0.1); border:1px solid rgba(156,28,46,0.35); border-radius:999px;
+  padding:.15em .7em; margin-top:.4em;
+}
 .exercise__swap{
   display:inline-flex; align-items:center; gap:.35em; margin-top:.6em;
   background:none; border:1px solid var(--border); color: var(--text-dim);

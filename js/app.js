@@ -33,7 +33,7 @@ revealEls.forEach(el => io.observe(el));
 /* ---------- Wizard state ---------- */
 const state = {
   name: "", age: null, sex: null, goal: null,
-  level: null, muscles: []
+  level: null, muscles: [], limitations: [], duration: "completo"
 };
 
 let currentStep = 1;
@@ -47,6 +47,45 @@ const btnNext = document.getElementById("btnNext");
 const btnGenerate = document.getElementById("btnGenerate");
 const wizardError = document.getElementById("wizardError");
 
+/* Selección de músculos: compartida entre los botones y el diagrama de
+   cuerpo, para que ambos siempre queden sincronizados. */
+function toggleMuscle(value) {
+  if (value === "fullbody") {
+    state.muscles = state.muscles.includes("fullbody") ? [] : ["fullbody"];
+  } else {
+    state.muscles = state.muscles.filter(m => m !== "fullbody");
+    state.muscles = state.muscles.includes(value)
+      ? state.muscles.filter(m => m !== value)
+      : [...state.muscles, value];
+  }
+  syncMuscleUI();
+  wizardError.textContent = "";
+}
+
+function syncMuscleUI() {
+  document.querySelectorAll('.pill-group[data-name="muscles"] .pill').forEach(p => {
+    p.classList.toggle("selected", state.muscles.includes(p.dataset.value));
+  });
+  document.querySelectorAll(".body-region").forEach(r => {
+    r.classList.toggle("selected", state.muscles.includes(r.dataset.muscle));
+  });
+}
+
+document.querySelectorAll(".body-region").forEach(region => {
+  region.addEventListener("click", () => toggleMuscle(region.dataset.muscle));
+});
+
+/* Tabs frontal / trasera del diagrama de cuerpo */
+document.querySelectorAll(".body-tab").forEach(tab => {
+  tab.addEventListener("click", () => {
+    const view = tab.dataset.view;
+    document.querySelectorAll(".body-tab").forEach(t => t.classList.toggle("active", t === tab));
+    document.querySelectorAll(".body-diagram__view").forEach(v => {
+      v.style.display = v.dataset.view === view ? "flex" : "none";
+    });
+  });
+});
+
 /* Pill selection — soporta selección única (radio) y múltiple (data-multi) */
 document.querySelectorAll(".pill-group").forEach(group => {
   const name = group.dataset.name;
@@ -54,26 +93,17 @@ document.querySelectorAll(".pill-group").forEach(group => {
 
   group.querySelectorAll(".pill").forEach(pill => {
     pill.addEventListener("click", () => {
+      if (name === "muscles") {
+        toggleMuscle(pill.dataset.value);
+        return;
+      }
       if (!isMulti) {
         group.querySelectorAll(".pill").forEach(p => p.classList.remove("selected"));
         pill.classList.add("selected");
         state[name] = pill.dataset.value;
       } else {
-        const value = pill.dataset.value;
-        const isFullbody = value === "fullbody";
-
-        if (isFullbody) {
-          // "Cuerpo completo" es excluyente con cualquier otra selección
-          group.querySelectorAll(".pill").forEach(p => p.classList.remove("selected"));
-          pill.classList.add("selected");
-          state[name] = ["fullbody"];
-        } else {
-          group.querySelector('.pill[data-value="fullbody"]')?.classList.remove("selected");
-          pill.classList.toggle("selected");
-          state[name] = Array.from(group.querySelectorAll(".pill.selected"))
-            .map(p => p.dataset.value)
-            .filter(v => v !== "fullbody");
-        }
+        pill.classList.toggle("selected");
+        state[name] = Array.from(group.querySelectorAll(".pill.selected")).map(p => p.dataset.value);
       }
       wizardError.textContent = "";
     });
@@ -144,7 +174,9 @@ form.addEventListener("submit", (e) => {
     sex: state.sex,
     goal: state.goal,
     level: state.level,
-    muscles: state.muscles
+    muscles: state.muscles,
+    limitations: state.limitations,
+    duration: state.duration
   };
 
   const routine = buildRoutine(profile);
@@ -170,6 +202,7 @@ function exerciseCardHTML(ex, opts) {
           <span class="exercise__scheme">${schemeText}</span>
         </div>
         ${ex.sub ? `<span class="exercise__target">🎯 ${SUB_LABELS[ex.sub]}</span>` : ""}
+        ${ex.flagged ? `<span class="exercise__caution">⚠️ Exige más la zona que indicaste</span>` : ""}
         <p class="exercise__tip">💡 ${ex.tip}</p>
         <button type="button" class="exercise__swap" ${swapAttrs}>⟲ Cambiar ejercicio</button>
       </div>
